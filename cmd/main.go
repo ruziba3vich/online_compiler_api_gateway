@@ -43,8 +43,8 @@ func newGRPCClient(cfg *config.Config, logger *lgg.Logger) (compiler_service.Cod
 	return compiler_service.NewCodeExecutorClient(conn), nil
 }
 
-func newService(logger *lgg.Logger) *service.Service {
-	return service.NewService(&sync.Mutex{}, *logger)
+func newService(logger *lgg.Logger, pythonClient compiler_service.CodeExecutorClient) *service.Service {
+	return service.NewService(&sync.Mutex{}, *logger, pythonClient)
 }
 
 func newGinRouter() *gin.Engine {
