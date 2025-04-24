@@ -83,7 +83,9 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 						s.logger.Info("Detected input prompt, sent WAITING_FOR_INPUT", map[string]any{"session_id": sessionID})
 					}
 				case *compiler_service.ExecuteResponse_Error:
-					msgToSend = []byte("Error: " + payload.Error.ErrorText)
+					if !strings.Contains(payload.Error.ErrorText, "--- Cleaned up") {
+						msgToSend = []byte("Error: " + payload.Error.ErrorText)
+					}
 					s.logger.Error("Received Error", map[string]any{"session_id": sessionID, "error": payload.Error.ErrorText})
 				case *compiler_service.ExecuteResponse_Status:
 					msgToSend = []byte("Status: " + payload.Status.State)
