@@ -1,0 +1,84 @@
+package main
+
+import (
+	"context"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
+	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
+	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
+	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+func main() {
+	fx.New(
+		fx.Provide(
+			config.NewConfig,
+			lgg.NewLogger,
+			newGRPCClient,
+			newService,
+			handler.NewHandler,
+			newGinRouter,
+			newHTTPServer,
+		),
+		fx.Invoke(registerRoutes),
+		fx.Invoke(startServer),
+	).Run()
+}
+
+func newGRPCClient(cfg *config.Config, logger *lgg.Logger) (compiler_service.CodeExecutorClient, error) {
+	conn, err := grpc.NewClient(cfg.PythonService, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error("Failed to connect to Python Executor Service", map[string]any{"error": err})
+		return nil, err
+	}
+	logger.Info("Connected to gRPC service", map[string]any{"address": cfg.PythonService})
+	return compiler_service.NewCodeExecutorClient(conn), nil
+}
+
+func newService(logger *lgg.Logger) *service.Service {
+	return service.NewService(&sync.Mutex{}, *logger)
+}
+
+func newGinRouter() *gin.Engine {
+	return gin.Default()
+}
+
+func newHTTPServer(cfg *config.Config) *http.Server {
+	return &http.Server{
+		Addr: cfg.GatewayPort,
+	}
+}
+
+func registerRoutes(router *gin.Engine, handler *handler.Handler) {
+	router.GET("/execute", handler.HandleWebSocket)
+}
+
+func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logger *lgg.Logger, cfg *config.Config) {
+	server.Handler = router
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			logger.Info("Starting API Gateway", map[string]any{"address": cfg.GatewayPort})
+			go func() {
+				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					logger.Error("Failed to run API Gateway", map[string]any{"error": err})
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			logger.Info("Shutting down API Gateway", map[string]any{"address": cfg.GatewayPort})
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			return server.Shutdown(ctx)
+		},
+	})
+}
