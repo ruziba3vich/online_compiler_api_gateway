@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// WsMessage represents the JSON payload received over WebSocket.
+type WsMessage struct {
+	Language string `json:"language,omitempty"`
+	Code     string `json:"code,omitempty"`
+	Input    string `json:"input,omitempty"`
+}
 
 type Service struct {
 	mx        *sync.Mutex
@@ -120,21 +128,25 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 			continue
 		}
 
-		message := string(payload)
-		s.logger.Debug("Received WebSocket message", map[string]any{"session_id": sessionID, "message": message})
+		var wsMsg WsMessage
+		if err := json.Unmarshal(payload, &wsMsg); err != nil {
+			s.logger.Warn("Invalid JSON message", map[string]any{"session_id": sessionID, "error": err})
+			s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Invalid JSON: %v", err)))
+			continue
+		}
+		s.logger.Debug("Received WebSocket JSON message", map[string]any{"session_id": sessionID, "message": wsMsg})
 
-		if strings.HasPrefix(message, "CODE:") {
-			code := strings.TrimPrefix(message, "CODE:")
-			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "code_length": len(code)})
+		if wsMsg.Language != "" && wsMsg.Code != "" {
+			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "code_length": len(wsMsg.Code)})
 
-			cleanupStream()
 			for _, keyword := range s.dangerous {
-				if strings.Contains(code, keyword) {
+				if strings.Contains(wsMsg.Code, keyword) {
 					s.publishMessage(conn, websocket.TextMessage, []byte("Error: dangerous script detected"))
 					return errors.New("unsafe code detected")
 				}
 			}
 
+			cleanupStream()
 			sessionID = uuid.NewString()
 			s.logger.Info("Generated new session ID for code submission", map[string]any{"session_id": sessionID})
 
@@ -154,8 +166,8 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 				SessionId: sessionID,
 				Payload: &compiler_service.ExecuteRequest_Code{
 					Code: &compiler_service.Code{
-						Language:   "python",
-						SourceCode: code,
+						Language:   wsMsg.Language,
+						SourceCode: wsMsg.Code,
 					},
 				},
 			}
@@ -165,14 +177,14 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 				cleanupStream()
 				return err
 			}
-			s.logger.Info("Sent code to gRPC", map[string]any{"session_id": sessionID, "bytes": len(code)})
-		} else if currentStream != nil {
-			s.logger.Info("Received input", map[string]any{"session_id": sessionID, "input": message})
+			s.logger.Info("Sent code to gRPC", map[string]any{"session_id": sessionID, "bytes": len(wsMsg.Code)})
+		} else if wsMsg.Input != "" && currentStream != nil {
+			s.logger.Info("Received input", map[string]any{"session_id": sessionID, "input": wsMsg.Input})
 			req := &compiler_service.ExecuteRequest{
 				SessionId: sessionID,
 				Payload: &compiler_service.ExecuteRequest_Input{
 					Input: &compiler_service.Input{
-						InputText: message,
+						InputText: wsMsg.Input,
 					},
 				},
 			}
@@ -184,8 +196,8 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 			}
 			s.logger.Info("Sent input to gRPC", map[string]any{"session_id": sessionID})
 		} else {
-			s.logger.Warn("Received message without active stream", map[string]any{"session_id": sessionID, "message": message})
-			s.publishMessage(conn, websocket.TextMessage, []byte("Error: No active execution. Send code with 'CODE:' prefix."))
+			s.logger.Warn("Invalid or unexpected JSON message", map[string]any{"session_id": sessionID, "message": wsMsg})
+			s.publishMessage(conn, websocket.TextMessage, []byte("Error: Invalid message. Send JSON with 'language' and 'code' or 'input' for active session."))
 		}
 	}
 }
