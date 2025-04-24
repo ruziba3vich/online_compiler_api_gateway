@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
@@ -27,96 +28,81 @@ func NewService(mx *sync.Mutex, logger lgg.Logger) *Service {
 	}
 }
 
-func (s *Service) ExecuteWithWs(conn *websocket.Conn,
-	stream compiler_service.CodeExecutor_ExecuteClient,
-	cancel context.CancelFunc, sessionID string) error {
-	defer s.cleanup(conn, cancel, sessionID)
+func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, client compiler_service.CodeExecutorClient, sessionID string) error {
+	var currentStream compiler_service.CodeExecutor_ExecuteClient
+	var currentCancel context.CancelFunc
 
-	go func() {
-		defer func() {
-			s.logger.Info("gRPC stream reader stopped", map[string]any{"session_id": sessionID})
-			s.cleanup(conn, cancel, sessionID)
-		}()
-
-		for {
-			resp, err := stream.Recv()
-			if err != nil {
-				if err == io.EOF {
-					s.logger.Info("gRPC stream closed cleanly by server (EOF)", map[string]any{"session_id": sessionID})
-					s.publishMessage(conn, websocket.TextMessage, []byte("INFO: Execution stream closed by server."))
-				} else if status.Code(err) == codes.Canceled {
-					s.logger.Warn("gRPC stream cancelled", map[string]any{"session_id": sessionID})
-				} else {
-					s.logger.Warn("Error receiving from gRPC stream", map[string]any{"session_id": sessionID, "error": err})
-					s.publishMessage(conn, websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, fmt.Sprintf("gRPC stream error: %v", err)))
-				}
-				return
-			}
-
-			var msgToSend []byte
-			msgType := websocket.TextMessage
-
-			switch payload := resp.Payload.(type) {
-			case *compiler_service.ExecuteResponse_Output:
-				msgToSend = []byte(payload.Output.OutputText)
-				s.logger.Info("Received Output", map[string]any{"session_id": sessionID, "output": payload.Output.OutputText})
-				if strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), ":") || strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), "?") {
-					s.publishMessage(conn, websocket.TextMessage, []byte("Status: WAITING_FOR_INPUT"))
-					s.logger.Info("Detected input prompt, sent WAITING_FOR_INPUT", map[string]any{"session_id": sessionID})
-				}
-			case *compiler_service.ExecuteResponse_Error:
-				msgToSend = []byte("Error: " + payload.Error.ErrorText)
-				s.logger.Error("Received Error", map[string]any{"session_id": sessionID, "error": payload.Error.ErrorText})
-			case *compiler_service.ExecuteResponse_Status:
-				msgToSend = []byte("Status: " + payload.Status.State)
-				s.logger.Info("Received Status", map[string]any{"session_id": sessionID, "status": payload.Status.State})
-			default:
-				s.logger.Warn("Received unknown payload type from gRPC", map[string]any{"session_id": sessionID})
-				continue
-			}
-
-			if err := s.publishMessage(conn, msgType, msgToSend); err != nil {
-				s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
-				return
-			}
+	cleanupStream := func() {
+		if currentCancel != nil {
+			s.logger.Info("Cleaning up current stream", map[string]any{"session_id": sessionID})
+			currentCancel()
+			currentCancel = nil
+			currentStream = nil
 		}
-	}()
-
-	msgType, codePayload, err := conn.ReadMessage()
-	if err != nil {
-		s.logger.Error("Error reading initial code from WebSocket", map[string]any{"session_id": sessionID, "error": err})
-		return err
-	}
-	if msgType != websocket.TextMessage {
-		s.logger.Error("Initial message not text (code expected)", map[string]any{"session_id": sessionID})
-		s.publishMessage(conn, websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, "Initial message must be Python code"))
-		return fmt.Errorf("unknown message type")
 	}
 
-	s.logger.Info("Sending Code to gRPC", map[string]any{"session_id": sessionID, "bytes": len(codePayload)})
-	initialReq := &compiler_service.ExecuteRequest{
-		SessionId: sessionID,
-		Payload: &compiler_service.ExecuteRequest_Code{
-			Code: &compiler_service.Code{
-				Language:   "python",
-				SourceCode: string(codePayload),
-			},
-		},
-	}
-	if err := stream.Send(initialReq); err != nil {
-		s.logger.Error("Failed to send initial code request to gRPC", map[string]any{"session_id": sessionID, "error": err})
-		s.publishMessage(conn, websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, fmt.Sprintf("Failed to send code: %v", err)))
-		return err
+	startStreamReader := func() {
+		go func(stream compiler_service.CodeExecutor_ExecuteClient, cancel context.CancelFunc, sessionID string) {
+			defer func() {
+				s.logger.Info("gRPC stream reader stopped", map[string]any{"session_id": sessionID})
+				cleanupStream()
+				s.publishMessage(conn, websocket.TextMessage, []byte("Status: STREAM_CLOSED"))
+			}()
+
+			for {
+				resp, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						s.logger.Info("gRPC stream closed cleanly by server (EOF)", map[string]any{"session_id": sessionID})
+						s.publishMessage(conn, websocket.TextMessage, []byte("INFO: Execution stream closed by server."))
+					} else if status.Code(err) == codes.Canceled {
+						s.logger.Warn("gRPC stream cancelled", map[string]any{"session_id": sessionID})
+					} else {
+						s.logger.Warn("Error receiving from gRPC stream", map[string]any{"session_id": sessionID, "error": err})
+						s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: gRPC stream error: %v", err)))
+					}
+					return
+				}
+
+				var msgToSend []byte
+				msgType := websocket.TextMessage
+
+				switch payload := resp.Payload.(type) {
+				case *compiler_service.ExecuteResponse_Output:
+					msgToSend = []byte(payload.Output.OutputText)
+					s.logger.Info("Received Output", map[string]any{"session_id": sessionID, "output": payload.Output.OutputText})
+					if strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), ":") || strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), "?") {
+						s.publishMessage(conn, websocket.TextMessage, []byte("Status: WAITING_FOR_INPUT"))
+						s.logger.Info("Detected input prompt, sent WAITING_FOR_INPUT", map[string]any{"session_id": sessionID})
+					}
+				case *compiler_service.ExecuteResponse_Error:
+					msgToSend = []byte("Error: " + payload.Error.ErrorText)
+					s.logger.Error("Received Error", map[string]any{"session_id": sessionID, "error": payload.Error.ErrorText})
+				case *compiler_service.ExecuteResponse_Status:
+					msgToSend = []byte("Status: " + payload.Status.State)
+					s.logger.Info("Received Status", map[string]any{"session_id": sessionID, "status": payload.Status.State})
+				default:
+					s.logger.Warn("Received unknown payload type from gRPC", map[string]any{"session_id": sessionID})
+					continue
+				}
+
+				if err := s.publishMessage(conn, msgType, msgToSend); err != nil {
+					s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
+					return
+				}
+			}
+		}(currentStream, currentCancel, sessionID)
 	}
 
 	for {
-		msgType, inputPayload, err := conn.ReadMessage()
+		msgType, payload, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				s.logger.Error("Error reading from WebSocket", map[string]any{"session_id": sessionID, "error": err})
 			} else {
 				s.logger.Warn("WebSocket closed", map[string]any{"session_id": sessionID, "error": err})
 			}
+			cleanupStream()
 			return err
 		}
 
@@ -125,19 +111,66 @@ func (s *Service) ExecuteWithWs(conn *websocket.Conn,
 			continue
 		}
 
-		s.logger.Info("Sending Input to gRPC", map[string]any{"session_id": sessionID, "input": string(inputPayload)})
-		inputReq := &compiler_service.ExecuteRequest{
-			SessionId: sessionID,
-			Payload: &compiler_service.ExecuteRequest_Input{
-				Input: &compiler_service.Input{
-					InputText: string(inputPayload),
+		message := string(payload)
+		s.logger.Debug("Received WebSocket message", map[string]any{"session_id": sessionID, "message": message})
+
+		if strings.HasPrefix(message, "CODE:") {
+			code := strings.TrimPrefix(message, "CODE:")
+			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "code_length": len(code)})
+
+			cleanupStream()
+
+			sessionID = uuid.NewString()
+			s.logger.Info("Generated new session ID for code submission", map[string]any{"session_id": sessionID})
+
+			ctx, cancel := context.WithCancel(ctx)
+			currentCancel = cancel
+			currentStream, err = client.Execute(ctx)
+			if err != nil {
+				s.logger.Error("Failed to start gRPC stream", map[string]any{"session_id": sessionID, "error": err})
+				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to execution service: %v", err)))
+				return err
+			}
+			s.logger.Info("Started new gRPC stream", map[string]any{"session_id": sessionID})
+
+			startStreamReader()
+
+			req := &compiler_service.ExecuteRequest{
+				SessionId: sessionID,
+				Payload: &compiler_service.ExecuteRequest_Code{
+					Code: &compiler_service.Code{
+						Language:   "python",
+						SourceCode: code,
+					},
 				},
-			},
-		}
-		if err := stream.Send(inputReq); err != nil {
-			s.logger.Error("Failed to send input request to gRPC", map[string]any{"session_id": sessionID, "error": err})
-			s.publishMessage(conn, websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, fmt.Sprintf("Failed to send input: %v", err)))
-			return err
+			}
+			if err := currentStream.Send(req); err != nil {
+				s.logger.Error("Failed to send code request to gRPC", map[string]any{"session_id": sessionID, "error": err})
+				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to send code: %v", err)))
+				cleanupStream()
+				return err
+			}
+			s.logger.Info("Sent code to gRPC", map[string]any{"session_id": sessionID, "bytes": len(code)})
+		} else if currentStream != nil {
+			s.logger.Info("Received input", map[string]any{"session_id": sessionID, "input": message})
+			req := &compiler_service.ExecuteRequest{
+				SessionId: sessionID,
+				Payload: &compiler_service.ExecuteRequest_Input{
+					Input: &compiler_service.Input{
+						InputText: message,
+					},
+				},
+			}
+			if err := currentStream.Send(req); err != nil {
+				s.logger.Error("Failed to send input request to gRPC", map[string]any{"session_id": sessionID, "error": err})
+				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to send input: %v", err)))
+				cleanupStream()
+				return err
+			}
+			s.logger.Info("Sent input to gRPC", map[string]any{"session_id": sessionID})
+		} else {
+			s.logger.Warn("Received message without active stream", map[string]any{"session_id": sessionID, "message": message})
+			s.publishMessage(conn, websocket.TextMessage, []byte("Error: No active execution. Send code with 'CODE:' prefix."))
 		}
 	}
 }
@@ -147,12 +180,4 @@ func (s *Service) publishMessage(conn *websocket.Conn, messageType int, data []b
 	defer s.mx.Unlock()
 	conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	return conn.WriteMessage(messageType, data)
-}
-
-func (s *Service) cleanup(conn *websocket.Conn, cancel context.CancelFunc, sessionID string) {
-	s.logger.Info("Cleaning up session", map[string]any{"session_id": sessionID})
-	cancel()
-	if err := conn.Close(); err != nil {
-		s.logger.Warn("Error closing WebSocket", map[string]any{"session_id": sessionID, "error": err})
-	}
 }
