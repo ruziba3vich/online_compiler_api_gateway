@@ -53,6 +53,7 @@ print("Hello, my telegram channel is t.me/Soliyev_talks")
 
 - Go (Gin Framework)
 - gRPC
+- Bi-directional streaming
 - Protocol Buffers
 - WebSocket
 - Uber FX (Dependency Injection)
