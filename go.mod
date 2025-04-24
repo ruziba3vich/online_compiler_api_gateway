@@ -3,6 +3,7 @@ module github.com/ruziba3vich/online_compiler_api_gateway
 go 1.24.2
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/grpc v1.72.0
