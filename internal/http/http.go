@@ -45,7 +45,7 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 
 	h.logger.Info("Started gRPC stream", map[string]any{"session_id": sessionID})
 
-	if err := h.srv.ExecuteWithWs(c.Request.Context(), conn, h.client, sessionID); err != nil {
+	if err := h.srv.ExecuteWithWs(c.Request.Context(), conn, sessionID); err != nil {
 		h.logger.Error("ExecuteWithWs failed", map[string]any{"session_id": sessionID, "error": err})
 	}
 }
