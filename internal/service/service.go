@@ -25,25 +25,52 @@ type WsMessage struct {
 	Input    string `json:"input,omitempty"`
 }
 
+// CodeExecutor defines the interface for language-specific gRPC clients.
+type CodeExecutor interface {
+	Execute(ctx context.Context) (compiler_service.CodeExecutor_ExecuteClient, error)
+}
+
+// Service manages WebSocket connections and routes code execution to language-specific gRPC services.
 type Service struct {
 	mx        *sync.Mutex
 	logger    *lgg.Logger
-	dangerous []string
+	dangerous map[string][]string
+	executors map[string]CodeExecutor
 }
 
-func NewService(mx *sync.Mutex, logger lgg.Logger) *Service {
-	return &Service{
-		mx:     mx,
-		logger: &logger,
-		dangerous: []string{
+// NewService initializes the service with a registry of language executors.
+func NewService(mx *sync.Mutex, logger lgg.Logger, pythonClient compiler_service.CodeExecutorClient) *Service {
+	dangerous := map[string][]string{
+		"python": {
 			"import os", "import subprocess", "__import__",
 			"import sys", "import shutil", "exec(",
 			"os.system", "subprocess", "importlib",
 		},
 	}
+
+	executors := map[string]CodeExecutor{
+		"python": &PythonExecutor{client: pythonClient},
+	}
+
+	return &Service{
+		mx:        mx,
+		logger:    &logger,
+		dangerous: dangerous,
+		executors: executors,
+	}
 }
 
-func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, client compiler_service.CodeExecutorClient, sessionID string) error {
+// PythonExecutor wraps the Python gRPC client to implement CodeExecutor.
+type PythonExecutor struct {
+	client compiler_service.CodeExecutorClient
+}
+
+func (p *PythonExecutor) Execute(ctx context.Context) (compiler_service.CodeExecutor_ExecuteClient, error) {
+	return p.client.Execute(ctx)
+}
+
+// ExecuteWithWs handles WebSocket connections and routes code execution to the appropriate language service.
+func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessionID string) error {
 	var currentStream compiler_service.CodeExecutor_ExecuteClient
 	var currentCancel context.CancelFunc
 
@@ -103,9 +130,11 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 					continue
 				}
 
-				if err := s.publishMessage(conn, msgType, msgToSend); err != nil {
-					s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
-					return
+				if len(msgToSend) > 0 {
+					if err := s.publishMessage(conn, msgType, msgToSend); err != nil {
+						s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
+						return
+					}
 				}
 			}
 		}(currentStream, currentCancel, sessionID)
@@ -139,26 +168,39 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 		if wsMsg.Language != "" && wsMsg.Code != "" {
 			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "code_length": len(wsMsg.Code)})
 
-			for _, keyword := range s.dangerous {
+			executor, ok := s.executors[strings.ToLower(wsMsg.Language)]
+			if !ok {
+				s.logger.Warn("Unsupported language", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
+				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Language '%s' is not supported", wsMsg.Language)))
+				continue
+			}
+
+			dangerousKeywords, exists := s.dangerous[strings.ToLower(wsMsg.Language)]
+			if !exists {
+				dangerousKeywords = []string{}
+			}
+			for _, keyword := range dangerousKeywords {
 				if strings.Contains(wsMsg.Code, keyword) {
+					s.logger.Warn("Dangerous code detected", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
 					s.publishMessage(conn, websocket.TextMessage, []byte("Error: dangerous script detected"))
 					return errors.New("unsafe code detected")
 				}
 			}
 
 			cleanupStream()
+
 			sessionID = uuid.NewString()
 			s.logger.Info("Generated new session ID for code submission", map[string]any{"session_id": sessionID})
 
 			ctx, cancel := context.WithCancel(ctx)
 			currentCancel = cancel
-			currentStream, err = client.Execute(ctx)
+			currentStream, err = executor.Execute(ctx)
 			if err != nil {
-				s.logger.Error("Failed to start gRPC stream", map[string]any{"session_id": sessionID, "error": err})
-				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to execution service: %v", err)))
+				s.logger.Error("Failed to start gRPC stream", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "error": err})
+				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to %s execution service: %v", wsMsg.Language, err)))
 				return err
 			}
-			s.logger.Info("Started new gRPC stream", map[string]any{"session_id": sessionID})
+			s.logger.Info("Started new gRPC stream", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
 
 			startStreamReader()
 
@@ -172,12 +214,12 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 				},
 			}
 			if err := currentStream.Send(req); err != nil {
-				s.logger.Error("Failed to send code request to gRPC", map[string]any{"session_id": sessionID, "error": err})
+				s.logger.Error("Failed to send code request to gRPC", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "error": err})
 				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to send code: %v", err)))
 				cleanupStream()
 				return err
 			}
-			s.logger.Info("Sent code to gRPC", map[string]any{"session_id": sessionID, "bytes": len(wsMsg.Code)})
+			s.logger.Info("Sent code to gRPC", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "bytes": len(wsMsg.Code)})
 		} else if wsMsg.Input != "" && currentStream != nil {
 			s.logger.Info("Received input", map[string]any{"session_id": sessionID, "input": wsMsg.Input})
 			req := &compiler_service.ExecuteRequest{
