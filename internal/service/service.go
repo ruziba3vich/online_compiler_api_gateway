@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -17,14 +18,20 @@ import (
 )
 
 type Service struct {
-	mx     *sync.Mutex
-	logger *lgg.Logger
+	mx        *sync.Mutex
+	logger    *lgg.Logger
+	dangerous []string
 }
 
 func NewService(mx *sync.Mutex, logger lgg.Logger) *Service {
 	return &Service{
 		mx:     mx,
 		logger: &logger,
+		dangerous: []string{
+			"import os", "import subprocess", "__import__",
+			"import sys", "import shutil", "open(", "eval(", "exec(",
+			"input(", "os.system", "subprocess", "importlib",
+		},
 	}
 }
 
@@ -119,6 +126,11 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "code_length": len(code)})
 
 			cleanupStream()
+			for _, keyword := range s.dangerous {
+				if strings.Contains(code, keyword) {
+					return errors.New("unsafe code detected")
+				}
+			}
 
 			sessionID = uuid.NewString()
 			s.logger.Info("Generated new session ID for code submission", map[string]any{"session_id": sessionID})
