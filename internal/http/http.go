@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,19 +44,9 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 	sessionID := uuid.NewString()
 	h.logger.Info("WebSocket client connected", map[string]any{"session_id": sessionID})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	stream, err := h.client.Execute(ctx)
-	if err != nil {
-		h.logger.Error("Failed to start gRPC stream", map[string]any{"session_id": sessionID, "error": err})
-		conn.WriteMessage(websocket.TextMessage, fmt.Appendf([]byte{}, "Error: Failed to connect to execution service: %s", err.Error()))
-		conn.Close()
-		cancel()
-		return
-	}
-
 	h.logger.Info("Started gRPC stream", map[string]any{"session_id": sessionID})
 
-	if err := h.srv.ExecuteWithWs(conn, stream, cancel, sessionID); err != nil {
+	if err := h.srv.ExecuteWithWs(c.Request.Context(), conn, h.client, sessionID); err != nil {
 		h.logger.Error("ExecuteWithWs failed", map[string]any{"session_id": sessionID, "error": err})
 	}
 }
