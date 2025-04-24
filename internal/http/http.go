@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
@@ -41,7 +40,7 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 		return
 	}
 
-	sessionID := uuid.NewString()
+	sessionID := c.ClientIP()
 	h.logger.Info("WebSocket client connected", map[string]any{"session_id": sessionID})
 
 	h.logger.Info("Started gRPC stream", map[string]any{"session_id": sessionID})
