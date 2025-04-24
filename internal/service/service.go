@@ -128,6 +128,7 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, clien
 			cleanupStream()
 			for _, keyword := range s.dangerous {
 				if strings.Contains(code, keyword) {
+					s.publishMessage(conn, websocket.TextMessage, []byte("Error: dangerous script detected"))
 					return errors.New("unsafe code detected")
 				}
 			}
