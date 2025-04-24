@@ -53,7 +53,7 @@ func newGinRouter() *gin.Engine {
 
 func newHTTPServer(cfg *config.Config) *http.Server {
 	return &http.Server{
-		Addr: cfg.GatewayPort,
+		Addr: ":" + cfg.GatewayPort,
 	}
 }
 
