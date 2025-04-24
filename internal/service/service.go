@@ -29,8 +29,8 @@ func NewService(mx *sync.Mutex, logger lgg.Logger) *Service {
 		logger: &logger,
 		dangerous: []string{
 			"import os", "import subprocess", "__import__",
-			"import sys", "import shutil", "open(", "eval(", "exec(",
-			"input(", "os.system", "subprocess", "importlib",
+			"import sys", "import shutil", "exec(",
+			"os.system", "subprocess", "importlib",
 		},
 	}
 }
