@@ -8,18 +8,20 @@ import (
 
 type (
 	Config struct {
-		PythonService string
-		JavaService   string
-		GatewayPort   string
+		PythonService       string
+		JavaService         string
+		GatewayPort         string
+		LangStorageFilePath string
 	}
 )
 
 func NewConfig() *Config {
 	_ = godotenv.Load()
 	return &Config{
-		PythonService: getEnv("PYTHON_SERVICE", "217.76.51.104:7771"),
-		JavaService:   getEnv("PYTHON_SERVICE", "217.76.51.104:7773"),
-		GatewayPort:   "7772",
+		PythonService:       getEnv("PYTHON_SERVICE", "217.76.51.104:7771"),
+		JavaService:         getEnv("PYTHON_SERVICE", "217.76.51.104:7773"),
+		GatewayPort:         getEnv("GATEWAY_PORT", "7772"),
+		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "languages.json"),
 	}
 }
 
