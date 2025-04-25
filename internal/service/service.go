@@ -39,7 +39,11 @@ type Service struct {
 }
 
 // NewService initializes the service with a registry of language executors.
-func NewService(mx *sync.Mutex, logger lgg.Logger, pythonClient compiler_service.CodeExecutorClient) *Service {
+func NewService(
+	mx *sync.Mutex,
+	logger lgg.Logger,
+	pythonClient compiler_service.CodeExecutorClient,
+	javaClient compiler_service.CodeExecutorClient) *Service {
 	dangerous := map[string][]string{
 		"python": {
 			"import os", "import subprocess", "__import__",
@@ -47,10 +51,62 @@ func NewService(mx *sync.Mutex, logger lgg.Logger, pythonClient compiler_service
 			"os.system", "subprocess", "importlib",
 			"open(",
 		},
+		"java": {
+			"Runtime.getRuntime().exec(",
+			"new ProcessBuilder(",
+			"ProcessBuilder",
+			"Runtime.exec(",
+
+			"java.io.File",
+			"new File(",
+			".delete()",
+			".mkdir()",
+			".renameTo(",
+			"java.io.FileOutputStream",
+			"java.io.FileInputStream",
+			"java.io.RandomAccessFile",
+			"java.nio.file.Files",
+			"java.nio.file.Paths",
+			"Files.write(",
+			"Files.readAllBytes(",
+			"Files.delete(",
+			"Files.copy(",
+			"Files.move(",
+
+			"java.net.Socket",
+			"new Socket(",
+			"java.net.ServerSocket",
+			"new ServerSocket(",
+			"java.net.URL",
+			".openConnection(",
+			".openStream(",
+			"java.net.DatagramSocket",
+			"java.nio.channels.SocketChannel",
+			"java.nio.channels.ServerSocketChannel",
+
+			"java.lang.reflect",
+			"Class.forName(",
+			".setAccessible(true)",
+			"Method.invoke(",
+			"Field.set(",
+
+			"System.exit(",
+			"System.load(",
+			"System.loadLibrary(",
+			"System.getenv(",
+			"System.getProperty(",
+			"System.setProperty(",
+			"System.getSecurityManager(",
+			"System.setSecurityManager(",
+			"java.lang.ClassLoader",
+			"URLClassLoader",
+			"new Thread(",
+		},
 	}
 
 	executors := map[string]CodeExecutor{
-		"python": &PythonExecutor{client: pythonClient},
+		"python": &Compiler{client: pythonClient},
+		"java":   &Compiler{client: javaClient},
 	}
 
 	return &Service{
@@ -62,11 +118,11 @@ func NewService(mx *sync.Mutex, logger lgg.Logger, pythonClient compiler_service
 }
 
 // PythonExecutor wraps the Python gRPC client to implement CodeExecutor.
-type PythonExecutor struct {
+type Compiler struct {
 	client compiler_service.CodeExecutorClient
 }
 
-func (p *PythonExecutor) Execute(ctx context.Context) (compiler_service.CodeExecutor_ExecuteClient, error) {
+func (p *Compiler) Execute(ctx context.Context) (compiler_service.CodeExecutor_ExecuteClient, error) {
 	return p.client.Execute(ctx)
 }
 
