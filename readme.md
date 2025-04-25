@@ -31,6 +31,9 @@ This WebSocket endpoint handles real-time communication. Clients can connect and
 ## Code Format
 
 To execute code, the client must send it in the following format:
+
+**Example:**
+
 ```JSON
 
 {
@@ -45,15 +48,6 @@ To execute code, the client must send it in the following format:
 }
 
 ```
-
-
-**Example:**
-
-```
-CODE:
-print("Hello, my telegram channel is t.me/Soliyev_talks")
-```
-
 
 > !! Note: If the format is invalid or missing `CODE:` prefix, execution may fail.
 
