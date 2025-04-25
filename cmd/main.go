@@ -45,7 +45,7 @@ func newPythonGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Python, 
 	return compiler_service.NewCodeExecutorClient(conn), nil
 }
 
-func newJavaGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Python, error) {
+func newJavaGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Java, error) {
 	conn, err := grpc.NewClient(cfg.JavaService, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error("Failed to connect to Java Executor Service", map[string]any{"error": err})
