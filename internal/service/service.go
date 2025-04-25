@@ -45,6 +45,7 @@ func NewService(mx *sync.Mutex, logger lgg.Logger, pythonClient compiler_service
 			"import os", "import subprocess", "__import__",
 			"import sys", "import shutil", "exec(",
 			"os.system", "subprocess", "importlib",
+			"open(",
 		},
 	}
 
