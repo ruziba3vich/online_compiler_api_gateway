@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,8 +43,8 @@ type Service struct {
 func NewService(
 	mx *sync.Mutex,
 	logger lgg.Logger,
-	pythonClient compiler_service.CodeExecutorClient,
-	javaClient compiler_service.CodeExecutorClient) *Service {
+	pythonClient repos.Python,
+	javaClient repos.Java) *Service {
 	dangerous := map[string][]string{
 		"python": {
 			"import os", "import subprocess", "__import__",
