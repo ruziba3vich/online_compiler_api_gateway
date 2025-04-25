@@ -11,6 +11,7 @@ import (
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/storage"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 	"go.uber.org/fx"
@@ -23,6 +24,9 @@ func main() {
 		fx.Provide(
 			config.NewConfig,
 			lgg.NewLogger,
+			storage.NewLanguageStorage,
+			service.NewLangService,
+			handler.NewLangHandler,
 			newPythonGRPCClient,
 			newJavaGRPCClient,
 			newService,
@@ -69,8 +73,10 @@ func newHTTPServer(cfg *config.Config) *http.Server {
 	}
 }
 
-func registerRoutes(router *gin.Engine, handler *handler.Handler) {
+func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler) {
 	router.GET("/execute", handler.HandleWebSocket)
+	router.GET("/languages", langHandler.GetAllLanguages)
+	router.POST("/create", langHandler.CreateLanguage)
 }
 
 func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logger *lgg.Logger, cfg *config.Config) {
