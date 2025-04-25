@@ -49,10 +49,6 @@ To execute code, the client must send it in the following format:
 
 ```
 
-> !! Note: If the format is invalid or missing `CODE:` prefix, execution may fail.
-
----
-
 ## Technologies Used
 
 - Go (Gin Framework)
