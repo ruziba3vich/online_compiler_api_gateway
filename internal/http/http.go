@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 )
@@ -18,15 +19,13 @@ var upgrader = websocket.Upgrader{
 
 type (
 	Handler struct {
-		client compiler_service.CodeExecutorClient
 		srv    *service.Service
 		logger *lgg.Logger
 	}
 )
 
-func NewHandler(client compiler_service.CodeExecutorClient, srv *service.Service, logger *lgg.Logger) *Handler {
+func NewHandler(srv *service.Service, logger *lgg.Logger) *Handler {
 	return &Handler{
-		client: client,
 		srv:    srv,
 		logger: logger,
 	}
@@ -40,7 +39,7 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 		return
 	}
 
-	sessionID := c.ClientIP()
+	sessionID := newID()
 	h.logger.Info("WebSocket client connected", map[string]any{"session_id": sessionID})
 
 	h.logger.Info("Started gRPC stream", map[string]any{"session_id": sessionID})
@@ -48,4 +47,10 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 	if err := h.srv.ExecuteWithWs(c.Request.Context(), conn, sessionID); err != nil {
 		h.logger.Error("ExecuteWithWs failed", map[string]any{"session_id": sessionID, "error": err})
 	}
+}
+
+func newID() string {
+	timestamp := time.Now().UnixMilli()
+
+	return fmt.Sprintf("%x-%x-%x-%x", timestamp>>32, (timestamp>>16)&0xffff, timestamp&0xffff, time.Now().UnixNano()&0xffff)
 }
