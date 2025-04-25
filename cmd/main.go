@@ -25,7 +25,7 @@ func main() {
 		fx.Provide(
 			config.NewConfig,
 			lgg.NewLogger,
-			logger.NewLogger,
+			NewLogger,
 			storage.NewLanguageStorage,
 			service.NewLangService,
 			handler.NewLangHandler,
@@ -101,4 +101,8 @@ func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logge
 			return server.Shutdown(ctx)
 		},
 	})
+}
+
+func NewLogger(cfg *config.Config) (*logger.Logger, error) {
+	return logger.NewLogger(cfg.LangStorageFilePath)
 }
