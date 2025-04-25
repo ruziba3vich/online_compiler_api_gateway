@@ -25,7 +25,7 @@ func (s *LangService) CreateLanguage(language string) error {
 		return errors.New("language name cannot be empty")
 	}
 	if err := s.langStorage.EnsureStorageExists(); err != nil {
-		s.logger.Error("error while checking storage check")
+		s.logger.Error("error while checking storage check", map[string]any{"error": err.Error()})
 		return err
 	}
 	return s.langStorage.AddLanguage(language)
@@ -35,7 +35,7 @@ func (s *LangService) GetAllLanguages() ([]string, error) {
 	languages, err := s.langStorage.GetLanguages()
 
 	if err != nil {
-		s.logger.Error("failed to fetch all languages: " + err.Error())
+		s.logger.Error("failed to fetch all languages", map[string]any{"error": err.Error()})
 		return languages, err
 	}
 	return languages, nil
