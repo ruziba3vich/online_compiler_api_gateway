@@ -34,12 +34,6 @@ func (s *LangStorage) GetLanguages() ([]string, error) {
 }
 
 func (s *LangStorage) AddLanguage(language string) error {
-	if _, err := os.Stat(s.filePath); os.IsNotExist(err) {
-		err := os.WriteFile(s.filePath, []byte("[]"), 0644)
-		if err != nil {
-			return errors.New("unable to create file")
-		}
-	}
 
 	languages, err := s.GetLanguages()
 	if err != nil {
@@ -61,5 +55,15 @@ func (s *LangStorage) AddLanguage(language string) error {
 		return errors.New("unable to write to file")
 	}
 
+	return nil
+}
+
+func (s *LangStorage) EnsureStorageExists() error {
+	if _, err := os.Stat(s.filePath); os.IsNotExist(err) {
+		err := os.WriteFile(s.filePath, []byte("[]"), 0644)
+		if err != nil {
+			return errors.New("unable to create file")
+		}
+	}
 	return nil
 }
