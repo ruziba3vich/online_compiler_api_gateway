@@ -32,6 +32,10 @@ func (s *LangService) CreateLanguage(language string) error {
 }
 
 func (s *LangService) GetAllLanguages() ([]string, error) {
+	if err := s.langStorage.EnsureStorageExists(); err != nil {
+		s.logger.Error("error while checking storage check", map[string]any{"error": err.Error()})
+		return []string{}, err
+	}
 	languages, err := s.langStorage.GetLanguages()
 
 	if err != nil {
