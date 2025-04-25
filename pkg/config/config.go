@@ -12,6 +12,7 @@ type (
 		JavaService         string
 		GatewayPort         string
 		LangStorageFilePath string
+		LogsFilePath        string
 	}
 )
 
@@ -22,6 +23,7 @@ func NewConfig() *Config {
 		JavaService:         getEnv("PYTHON_SERVICE", "217.76.51.104:7773"),
 		GatewayPort:         getEnv("GATEWAY_PORT", "7772"),
 		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "languages.json"),
+		LogsFilePath:        getEnv("LOGS_FILE_PATH", "app.log"),
 	}
 }
 
