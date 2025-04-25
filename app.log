@@ -1,0 +1,4 @@
+{"address":"217.76.51.104:7771","level":"info","msg":"Connected to gRPC service","time":"2025-04-25T00:01:19+05:00"}
+{"address":"7772","level":"info","msg":"Starting API Gateway","time":"2025-04-25T00:01:19+05:00"}
+{"error":"listen tcp :7772: bind: address already in use","level":"info","msg":"Failed to run API Gateway","time":"2025-04-25T00:01:19+05:00"}
+{"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-25T00:04:15+05:00"}

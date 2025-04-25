@@ -31,9 +31,19 @@ This WebSocket endpoint handles real-time communication. Clients can connect and
 ## Code Format
 
 To execute code, the client must send it in the following format:
-```
-CODE:
-<your code goes here>
+```JSON
+
+{
+    "language": "paython", // choose the programming language here
+    "code": "print(\"Hello, my telegram channel is t.me/Soliyev_talks\")" // write the source code here in the specified language
+}
+
+---------------------------------------------------------------------------------------
+
+{
+    "input": "some input" // if your code requires some input, pass the input values in this way
+}
+
 ```
 
 
