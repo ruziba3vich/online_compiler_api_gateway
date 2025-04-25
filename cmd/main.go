@@ -14,6 +14,7 @@ import (
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/storage"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
+	logger "github.com/ruziba3vich/prodonik_lgger"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +25,7 @@ func main() {
 		fx.Provide(
 			config.NewConfig,
 			lgg.NewLogger,
+			logger.NewLogger,
 			storage.NewLanguageStorage,
 			service.NewLangService,
 			handler.NewLangHandler,
