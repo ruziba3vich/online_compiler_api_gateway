@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
@@ -22,7 +23,8 @@ func main() {
 		fx.Provide(
 			config.NewConfig,
 			lgg.NewLogger,
-			newGRPCClient,
+			newPythonGRPCClient,
+			newJavaGRPCClient,
 			newService,
 			handler.NewHandler,
 			newGinRouter,
@@ -33,7 +35,7 @@ func main() {
 	).Run()
 }
 
-func newGRPCClient(cfg *config.Config, logger *lgg.Logger) (compiler_service.CodeExecutorClient, error) {
+func newPythonGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Python, error) {
 	conn, err := grpc.NewClient(cfg.PythonService, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error("Failed to connect to Python Executor Service", map[string]any{"error": err})
@@ -43,8 +45,18 @@ func newGRPCClient(cfg *config.Config, logger *lgg.Logger) (compiler_service.Cod
 	return compiler_service.NewCodeExecutorClient(conn), nil
 }
 
-func newService(logger *lgg.Logger, pythonClient compiler_service.CodeExecutorClient) *service.Service {
-	return service.NewService(&sync.Mutex{}, *logger, pythonClient)
+func newJavaGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Python, error) {
+	conn, err := grpc.NewClient(cfg.JavaService, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error("Failed to connect to Java Executor Service", map[string]any{"error": err})
+		return nil, err
+	}
+	logger.Info("Connected to gRPC service", map[string]any{"address": cfg.JavaService})
+	return compiler_service.NewCodeExecutorClient(conn), nil
+}
+
+func newService(logger *lgg.Logger, pythonClient repos.Python, javaClient repos.Java) *service.Service {
+	return service.NewService(&sync.Mutex{}, *logger, pythonClient, javaClient)
 }
 
 func newGinRouter() *gin.Engine {
