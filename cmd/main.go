@@ -104,5 +104,5 @@ func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logge
 }
 
 func NewLogger(cfg *config.Config) (*logger.Logger, error) {
-	return logger.NewLogger(cfg.LangStorageFilePath)
+	return logger.NewLogger(cfg.LogsFilePath)
 }
