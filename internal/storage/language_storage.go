@@ -25,6 +25,13 @@ func (s *LangStorage) GetLanguages() ([]string, error) {
 		return []string{}, errors.New("unable to read file")
 	}
 
+	if len(data) == 0 {
+		if err := os.WriteFile(s.filePath, []byte("[]"), 0644); err != nil {
+			return []string{}, errors.New("unable to initialize empty file")
+		}
+		return []string{}, nil
+	}
+
 	var languages []string
 	if err := json.Unmarshal(data, &languages); err != nil {
 		return []string{}, errors.New("invalid JSON format")
@@ -34,7 +41,6 @@ func (s *LangStorage) GetLanguages() ([]string, error) {
 }
 
 func (s *LangStorage) AddLanguage(language string) error {
-
 	languages, err := s.GetLanguages()
 	if err != nil {
 		return err
