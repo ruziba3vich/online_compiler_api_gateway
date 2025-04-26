@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/storage"
 	logger "github.com/ruziba3vich/prodonik_lgger"
@@ -24,9 +26,12 @@ func (s *LangService) CreateLanguage(language string) error {
 		s.logger.Error("error while checking storage check", map[string]any{"length": len(language)})
 		return errors.New("language name cannot be empty")
 	}
-	if err := s.langStorage.EnsureStorageExists(); err != nil {
-		s.logger.Error("error while checking storage check", map[string]any{"error": err.Error()})
+	languages, err := s.GetAllLanguages()
+	if err != nil {
 		return err
+	}
+	if slices.Contains(languages, language) {
+		return fmt.Errorf("%s already exists", language)
 	}
 	return s.langStorage.AddLanguage(language)
 }
