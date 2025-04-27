@@ -45,7 +45,7 @@ func (h *LangHandler) CreateLanguage(c *gin.Context) {
 		return
 	}
 
-	if err := h.langService.CreateLanguage(req.Name); err != nil {
+	if err := h.langService.CreateLanguage(&req); err != nil {
 		h.logger.Error("Failed to add language", map[string]any{"error": err.Error(), "language": req.Name})
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
