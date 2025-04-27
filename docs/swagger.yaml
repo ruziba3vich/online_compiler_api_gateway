@@ -4,6 +4,8 @@ definitions:
     properties:
       name:
         type: string
+      password:
+        type: string
     type: object
 host: 217.76.51.104:7772
 info:

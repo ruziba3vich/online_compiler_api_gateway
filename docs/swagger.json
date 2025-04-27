@@ -103,6 +103,9 @@
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         }
