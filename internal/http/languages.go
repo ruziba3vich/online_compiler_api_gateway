@@ -1,9 +1,15 @@
+// @title Online Compiler API
+// @version 1.0
+// @description API for managing programming languages and compiling code
+// @host 217.76.51.104:7772
+// @BasePath /
 package handler
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/dto"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	logger "github.com/ruziba3vich/prodonik_lgger"
 )
@@ -20,10 +26,19 @@ func NewLangHandler(langService *service.LangService, logger *logger.Logger) *La
 	}
 }
 
+// CreateLanguage godoc
+// @Summary      Create a new programming language
+// @Description  Adds a new programming language to the system
+// @Tags         languages
+// @Accept       json
+// @Produce      json
+// @Param        language  body      dto.Language  true  "Language name"
+// @Success      201       {object}  map[string]string    "Language created successfully"
+// @Failure      400       {object}  map[string]string    "Invalid request body"
+// @Failure      409       {object}  map[string]string    "Conflict, language already exists"
+// @Router       /languages [post]
 func (h *LangHandler) CreateLanguage(c *gin.Context) {
-	var req struct {
-		Name string `json:"name"`
-	}
+	var req dto.Language
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to decode request body", map[string]any{"error": err.Error()})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -40,6 +55,14 @@ func (h *LangHandler) CreateLanguage(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"name": req.Name})
 }
 
+// GetAllLanguages godoc
+// @Summary      Retrieve all programming languages
+// @Description  Gets a list of all programming languages in the system
+// @Tags         languages
+// @Produce      json
+// @Success      200  {array}   string               "List of languages"
+// @Failure      500  {object}  map[string]string    "Internal server error"
+// @Router       /languages [get]
 func (h *LangHandler) GetAllLanguages(c *gin.Context) {
 	languages, err := h.langService.GetAllLanguages()
 	if err != nil {

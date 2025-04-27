@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/ruziba3vich/online_compiler_api_gateway/docs"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
@@ -15,6 +16,8 @@ import (
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 	logger "github.com/ruziba3vich/prodonik_lgger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -76,6 +79,7 @@ func newHTTPServer(cfg *config.Config) *http.Server {
 }
 
 func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler) {
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/execute", handler.HandleWebSocket)
 	router.GET("/languages", langHandler.GetAllLanguages)
 	router.POST("/create", langHandler.CreateLanguage)
