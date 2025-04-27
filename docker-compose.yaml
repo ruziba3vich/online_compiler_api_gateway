@@ -17,10 +17,9 @@ services:
     #   retries: 3
     #   start_period: 10s
     networks:
-      - app-network
+      - compiler-network
   redis:
     image: redis:7
-    container_name: redis
     restart: always
     command: redis-server
     volumes:
@@ -33,9 +32,9 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - app-network
+      - compiler-network
 volumes:
   redis_data:
 networks:
-  app-network:
+  compiler-network:
     driver: bridge
