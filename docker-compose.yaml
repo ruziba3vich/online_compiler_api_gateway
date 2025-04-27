@@ -7,8 +7,35 @@ services:
       - "7772:7772"
     volumes:
       - ./logs:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:7772/health"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+    #   start_period: 10s
     networks:
       - app-network
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    command: redis-server
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6378:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
+volumes:
+  redis_data:
 networks:
   app-network:
     driver: bridge
