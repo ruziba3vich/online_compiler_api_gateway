@@ -14,7 +14,103 @@ const docTemplate = `{
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
-    "paths": {}
+    "paths": {
+        "/languages": {
+            "get": {
+                "description": "Gets a list of all programming languages in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "languages"
+                ],
+                "summary": "Retrieve all programming languages",
+                "responses": {
+                    "200": {
+                        "description": "List of languages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Adds a new programming language to the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "languages"
+                ],
+                "summary": "Create a new programming language",
+                "parameters": [
+                    {
+                        "description": "Language name",
+                        "name": "language",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Language created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict, language already exists",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

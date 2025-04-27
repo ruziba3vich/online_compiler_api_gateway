@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/dto"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	logger "github.com/ruziba3vich/prodonik_lgger"
 )
@@ -31,15 +32,13 @@ func NewLangHandler(langService *service.LangService, logger *logger.Logger) *La
 // @Tags         languages
 // @Accept       json
 // @Produce      json
-// @Param        language  body      struct{Name string}  true  "Language name"
+// @Param        language  body      dto.Language  true  "Language name"
 // @Success      201       {object}  map[string]string    "Language created successfully"
 // @Failure      400       {object}  map[string]string    "Invalid request body"
 // @Failure      409       {object}  map[string]string    "Conflict, language already exists"
 // @Router       /languages [post]
 func (h *LangHandler) CreateLanguage(c *gin.Context) {
-	var req struct {
-		Name string `json:"name"`
-	}
+	var req dto.Language
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("Failed to decode request body", map[string]any{"error": err.Error()})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
