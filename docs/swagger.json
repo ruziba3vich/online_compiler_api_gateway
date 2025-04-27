@@ -7,39 +7,9 @@
         "version": "1.0"
     },
     "host": "217.76.51.104:7772",
-    "basePath": "/",
+    "basePath": "/api/v1",
     "paths": {
-        "/languages": {
-            "get": {
-                "description": "Gets a list of all programming languages in the system",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Retrieve all programming languages",
-                "responses": {
-                    "200": {
-                        "description": "List of languages",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
+        "/create": {
             "post": {
                 "description": "Adds a new programming language to the system",
                 "consumes": [
@@ -84,6 +54,38 @@
                     },
                     "409": {
                         "description": "Conflict, language already exists",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/languages": {
+            "get": {
+                "description": "Gets a list of all programming languages in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "languages"
+                ],
+                "summary": "Retrieve all programming languages",
+                "responses": {
+                    "200": {
+                        "description": "List of languages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

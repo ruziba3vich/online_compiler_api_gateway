@@ -15,37 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/languages": {
-            "get": {
-                "description": "Gets a list of all programming languages in the system",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Retrieve all programming languages",
-                "responses": {
-                    "200": {
-                        "description": "List of languages",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
+        "/create": {
             "post": {
                 "description": "Adds a new programming language to the system",
                 "consumes": [
@@ -99,6 +69,38 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/languages": {
+            "get": {
+                "description": "Gets a list of all programming languages in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "languages"
+                ],
+                "summary": "Retrieve all programming languages",
+                "responses": {
+                    "200": {
+                        "description": "List of languages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -117,7 +119,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "217.76.51.104:7772",
-	BasePath:         "/",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Online Compiler API",
 	Description:      "API for managing programming languages and compiling code",

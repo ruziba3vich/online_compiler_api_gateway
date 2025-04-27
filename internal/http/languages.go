@@ -2,7 +2,7 @@
 // @version 1.0
 // @description API for managing programming languages and compiling code
 // @host 217.76.51.104:7772
-// @BasePath /
+// @BasePath /api/v1
 package handler
 
 import (
@@ -36,7 +36,7 @@ func NewLangHandler(langService *service.LangService, logger *logger.Logger) *La
 // @Success      201       {object}  map[string]string    "Language created successfully"
 // @Failure      400       {object}  map[string]string    "Invalid request body"
 // @Failure      409       {object}  map[string]string    "Conflict, language already exists"
-// @Router       /languages [post]
+// @Router       /create [post]
 func (h *LangHandler) CreateLanguage(c *gin.Context) {
 	var req dto.Language
 	if err := c.ShouldBindJSON(&req); err != nil {
