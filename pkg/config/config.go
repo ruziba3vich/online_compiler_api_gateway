@@ -40,7 +40,7 @@ func NewConfig() *Config {
 		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "languages.json"),
 		LogsFilePath:        getEnv("LOGS_FILE_PATH", "app.log"),
 		RedisCfg: &RedisConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
+			Host:     getEnv("REDIS_HOST", "redis"),
 			Port:     getEnv("REDIS_PORT", "6379"),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvInt("REDIS_DB", 0),
