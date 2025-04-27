@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -14,12 +15,19 @@ type (
 		GatewayPort         string
 		LangStorageFilePath string
 		LogsFilePath        string
+		RLCnfg              *RateLimiter
 		RedisCfg            *RedisConfig
 	}
 
 	RedisConfig struct {
 		Host, Port, Password string
 		DB                   int
+	}
+
+	RateLimiter struct {
+		MaxTokens  int
+		RefillRate float64
+		Window     time.Duration
 	}
 )
 
@@ -36,6 +44,11 @@ func NewConfig() *Config {
 			Port:     getEnv("REDIS_PORT", "6379"),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvInt("REDIS_DB", 0),
+		},
+		RLCnfg: &RateLimiter{
+			RefillRate: getEnvFloat64("REFILL_RATE", 0.25),
+			MaxTokens:  getEnvInt("MAX_TOKENS", 15),
+			Window:     getEnvDuration("RL_WINDOW", 1),
 		},
 	}
 }
@@ -56,4 +69,23 @@ func getEnvInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func getEnvFloat64(key string, fallback float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		v, err := strconv.ParseFloat(value, 64)
+		if err == nil {
+			return v
+		}
+	}
+	return fallback
+}
+
+func getEnvDuration(key string, fallback int) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		v := getEnvInt(key, fallback)
+		return time.Duration(v) * time.Minute
+	}
+
+	return time.Duration(fallback) * time.Minute
 }
