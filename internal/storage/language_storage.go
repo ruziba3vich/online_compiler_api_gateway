@@ -8,15 +8,12 @@ import (
 	"sync"
 
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type LangStorage struct {
 	filePath string
 	mu       sync.Mutex
 }
-
-var hashed string = "$2a$10$/zXjJLDbjJZcsdl0zPYIe.lcBf9rrFbjomA86CE72SX.akadbPWfi"
 
 func NewLanguageStorage(cfg *config.Config) *LangStorage {
 	return &LangStorage{
@@ -65,7 +62,7 @@ func (s *LangStorage) GetLanguages() ([]string, error) {
 
 	err = json.Unmarshal(data, &languages)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse JSON from storage file '%s': %w", s.filePath, err)
+		return nil, fmt.Errorf("failed to parse JSON from storage file '%s': %s", s.filePath, err.Error())
 	}
 
 	return languages, nil
@@ -77,38 +74,27 @@ func (s *LangStorage) AddLanguage(language string) error {
 
 	data, err := os.ReadFile(s.filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read storage file '%s' before adding language: %w", s.filePath, err)
+		return fmt.Errorf("failed to read storage file '%s' before adding language: %s", s.filePath, err.Error())
 	}
 
 	var languages []string
 	if len(data) > 0 {
 		err = json.Unmarshal(data, &languages)
 		if err != nil {
-			return fmt.Errorf("failed to parse JSON from storage file '%s' before adding language: %w", s.filePath, err)
+			return fmt.Errorf("failed to parse JSON from storage file '%s' before adding language: %s", s.filePath, err.Error())
 		}
 	}
 	languages = append(languages, language)
 
 	updatedData, err := json.MarshalIndent(languages, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal updated language list to JSON: %w", err)
+		return fmt.Errorf("failed to marshal updated language list to JSON: %s", err.Error())
 	}
 
 	err = os.WriteFile(s.filePath, updatedData, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write updated language list to storage file '%s': %w", s.filePath, err)
+		return fmt.Errorf("failed to write updated language list to storage file '%s': %s", s.filePath, err.Error())
 	}
 
 	return nil
-}
-
-func compareHashedString(plaintext string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plaintext))
-	if err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
