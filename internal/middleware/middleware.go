@@ -35,9 +35,9 @@ func (m *MidWare) RateLimit() gin.HandlerFunc {
 
 		allowed, err := m.limiter.AllowRequest(c.Request.Context(), clientIP)
 		if err != nil {
-			m.logger.Error(fmt.Sprintf("RateLimit: Limiter error for IP %s: %v", clientIP, err), map[string]any{"ip": clientIP, "error": err.Error()}) // Add relevant context
+			m.logger.Error(fmt.Sprintf("RateLimit: Limiter error for IP %s: %v", clientIP, err), map[string]any{"ip": clientIP, "error": err.Error()})
 
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{fmt.Sprintf("RateLimit: Limiter error for IP %s: %v", clientIP, err): map[string]any{"ip": clientIP, "error": err.Error()}})
 			c.Abort()
 			return
 		}
