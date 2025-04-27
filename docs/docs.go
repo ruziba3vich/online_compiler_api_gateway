@@ -109,6 +109,9 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         }
