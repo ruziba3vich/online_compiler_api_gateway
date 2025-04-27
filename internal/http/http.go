@@ -15,8 +15,9 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		return origin == "http://compile.prodonik.uz" || origin == "https://compile.prodonik.uz"
+		// origin := r.Header.Get("Origin")
+		// return origin == "http://compile.prodonik.uz" || origin == "https://compile.prodonik.uz"
+		return true
 	},
 }
 
