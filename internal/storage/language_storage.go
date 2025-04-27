@@ -16,6 +16,8 @@ type LangStorage struct {
 	mu       sync.Mutex
 }
 
+var hashed string = "$2a$10$/zXjJLDbjJZcsdl0zPYIe.lcBf9rrFbjomA86CE72SX.akadbPWfi"
+
 func NewLanguageStorage(cfg *config.Config) *LangStorage {
 	return &LangStorage{
 		filePath: cfg.LangStorageFilePath,
@@ -100,15 +102,7 @@ func (s *LangStorage) AddLanguage(language string) error {
 	return nil
 }
 
-func hashString(plaintext string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(plaintext), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
-
-func compareHashedString(hashed, plaintext string) (bool, error) {
+func compareHashedString(plaintext string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plaintext))
 	if err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
