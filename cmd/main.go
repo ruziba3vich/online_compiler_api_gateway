@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/ruziba3vich/online_compiler_api_gateway/docs"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"

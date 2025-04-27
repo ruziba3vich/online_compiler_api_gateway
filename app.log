@@ -18,3 +18,11 @@
 {"language":"java","level":"info","msg":"Added new language","time":"2025-04-26T23:08:13+05:00"}
 {"language":"python","level":"info","msg":"Added new language","time":"2025-04-26T23:08:18+05:00"}
 {"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-26T23:08:39+05:00"}
+{"address":"217.76.51.104:7771","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T10:50:59+05:00"}
+{"address":"217.76.51.104:7773","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T10:50:59+05:00"}
+{"address":"7772","level":"info","msg":"Starting API Gateway","time":"2025-04-27T10:50:59+05:00"}
+{"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-27T10:51:29+05:00"}
+{"address":"217.76.51.104:7771","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T10:53:24+05:00"}
+{"address":"217.76.51.104:7773","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T10:53:24+05:00"}
+{"address":"7772","level":"info","msg":"Starting API Gateway","time":"2025-04-27T10:53:24+05:00"}
+{"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-27T10:54:32+05:00"}

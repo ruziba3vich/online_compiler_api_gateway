@@ -1,0 +1,9 @@
+basePath: /
+host: 217.76.51.104:7772
+info:
+  contact: {}
+  description: API for managing programming languages and compiling code
+  title: Online Compiler API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
