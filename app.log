@@ -34,3 +34,7 @@
 {"address":"217.76.51.104:7773","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T11:03:24+05:00"}
 {"address":"7772","level":"info","msg":"Starting API Gateway","time":"2025-04-27T11:03:24+05:00"}
 {"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-27T11:03:45+05:00"}
+{"address":"217.76.51.104:7771","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T12:36:40+05:00"}
+{"address":"217.76.51.104:7773","level":"info","msg":"Connected to gRPC service","time":"2025-04-27T12:36:40+05:00"}
+{"address":"7772","level":"info","msg":"Starting API Gateway","time":"2025-04-27T12:36:40+05:00"}
+{"address":"7772","level":"info","msg":"Shutting down API Gateway","time":"2025-04-27T12:36:42+05:00"}
