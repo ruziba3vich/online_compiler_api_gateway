@@ -86,9 +86,11 @@ func newHTTPServer(cfg *config.Config) *http.Server {
 
 func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler, middleware *middleware.MidWare) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.GET("/execute", middleware.Middleware()(handler.HandleWebSocket))
-	router.GET("/languages", langHandler.GetAllLanguages)
-	router.POST("/create", langHandler.CreateLanguage)
+	r := router.Group("/api/v1")
+	r.Use(middleware.RateLimit())
+	r.GET("/execute", handler.HandleWebSocket)
+	r.GET("/languages", langHandler.GetAllLanguages)
+	r.POST("/create", langHandler.CreateLanguage)
 }
 
 func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logger *lgg.Logger, cfg *config.Config) {
