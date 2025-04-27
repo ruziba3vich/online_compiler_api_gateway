@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type LangStorage struct {
@@ -97,4 +98,23 @@ func (s *LangStorage) AddLanguage(language string) error {
 	}
 
 	return nil
+}
+
+func hashString(plaintext string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(plaintext), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func compareHashedString(hashed, plaintext string) (bool, error) {
+	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plaintext))
+	if err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
