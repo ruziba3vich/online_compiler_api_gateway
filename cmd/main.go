@@ -7,15 +7,18 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	_ "github.com/ruziba3vich/online_compiler_api_gateway/docs"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/middleware"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/storage"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 	logger "github.com/ruziba3vich/prodonik_lgger"
+	limiter "github.com/ruziba3vich/prodonik_rl"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/fx"
@@ -27,7 +30,10 @@ func main() {
 	fx.New(
 		fx.Provide(
 			config.NewConfig,
+			newRedisClient,
+			newRateLimiter,
 			lgg.NewLogger,
+			newMiddleware,
 			NewLogger,
 			storage.NewLanguageStorage,
 			service.NewLangService,
@@ -78,9 +84,9 @@ func newHTTPServer(cfg *config.Config) *http.Server {
 	}
 }
 
-func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler) {
+func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler, middleware *middleware.MidWare) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.GET("/execute", handler.HandleWebSocket)
+	router.GET("/execute", middleware.Middleware()(handler.HandleWebSocket))
 	router.GET("/languages", langHandler.GetAllLanguages)
 	router.POST("/create", langHandler.CreateLanguage)
 }
@@ -109,4 +115,20 @@ func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logge
 
 func NewLogger(cfg *config.Config) (*logger.Logger, error) {
 	return logger.NewLogger(cfg.LogsFilePath)
+}
+
+func newRedisClient(cfg *config.Config) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisCfg.Host + ":" + cfg.RedisCfg.Port,
+		Password: cfg.RedisCfg.Password,
+		DB:       cfg.RedisCfg.DB,
+	})
+}
+
+func newRateLimiter(cfg *config.Config, clinent *redis.Client) *limiter.TokenBucketLimiter {
+	return limiter.NewTokenBucketLimiter(clinent, cfg.RLCnfg.MaxTokens, cfg.RLCnfg.RefillRate, cfg.RLCnfg.Window)
+}
+
+func newMiddleware(limiter *limiter.TokenBucketLimiter, logger *logger.Logger) *middleware.MidWare {
+	return middleware.NewMidWare(logger, limiter)
 }
