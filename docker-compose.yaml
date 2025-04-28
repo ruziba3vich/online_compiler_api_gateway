@@ -6,8 +6,8 @@ services:
     ports:
       - "7772:7772"
     volumes:
-      - ./logs:/app
-      - ./data:/app
+      - ./logs:/app/logs
+      - ./data:/app/data
     depends_on:
       redis:
         condition: service_healthy
