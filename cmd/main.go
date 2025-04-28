@@ -10,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	_ "github.com/ruziba3vich/online_compiler_api_gateway/docs"
 	"github.com/ruziba3vich/online_compiler_api_gateway/genprotos/genprotos/compiler_service"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/db"
 	handler "github.com/ruziba3vich/online_compiler_api_gateway/internal/http"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/middleware"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
@@ -24,6 +25,7 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -35,7 +37,8 @@ func main() {
 			lgg.NewLogger,
 			newMiddleware,
 			NewLogger,
-			storage.NewLanguageStorage,
+			NewDB,
+			storage.NewLangStorage,
 			service.NewLangService,
 			handler.NewLangHandler,
 			newPythonGRPCClient,
@@ -48,6 +51,10 @@ func main() {
 		fx.Invoke(registerRoutes),
 		fx.Invoke(startServer),
 	).Run()
+}
+
+func NewDB(cfg *config.Config) (*gorm.DB, error) {
+	return db.NewDB(cfg.LangStorageFilePath)
 }
 
 func newPythonGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Python, error) {
