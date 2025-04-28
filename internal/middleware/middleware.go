@@ -54,7 +54,7 @@ func (m *MidWare) RateLimit() gin.HandlerFunc {
 	}
 }
 
-func CORS() gin.HandlerFunc {
+func (m *MidWare) CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
