@@ -1,100 +1,33 @@
 package storage
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
-	"sync"
-
-	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
+	"github.com/ruziba3vich/online_compiler_api_gateway/internal/models"
+	"gorm.io/gorm"
 )
 
 type LangStorage struct {
-	filePath string
-	mu       sync.Mutex
+	db *gorm.DB
 }
 
-func NewLanguageStorage(cfg *config.Config) *LangStorage {
+func NewLangStorage(db *gorm.DB) *LangStorage {
 	return &LangStorage{
-		filePath: cfg.LangStorageFilePath,
+		db: db,
 	}
-}
-
-func (s *LangStorage) EnsureStorageExists() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	_, err := os.Stat(s.filePath)
-	if err == nil {
-		return nil
-	}
-
-	if errors.Is(err, os.ErrNotExist) {
-		fmt.Printf("Storage file '%s' not found, creating...\n", s.filePath)
-		emptyJSONArray := []byte("[]")
-		writeErr := os.WriteFile(s.filePath, emptyJSONArray, 0644)
-		if writeErr != nil {
-			return fmt.Errorf("failed to create storage file '%s': %w", s.filePath, writeErr)
-		}
-		return nil
-	}
-
-	return fmt.Errorf("failed to check storage file status for '%s': %w", s.filePath, err)
-}
-
-func (s *LangStorage) GetLanguages() ([]string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	data, err := os.ReadFile(s.filePath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("storage file '%s' not found, run EnsureStorageExists or check path: %w", s.filePath, err)
-		}
-		return nil, fmt.Errorf("failed to read storage file '%s': %w", s.filePath, err)
-	}
-
-	var languages []string
-	if len(data) == 0 {
-		return []string{}, nil
-	}
-
-	err = json.Unmarshal(data, &languages)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse JSON from storage file '%s': %s", s.filePath, err.Error())
-	}
-
-	return languages, nil
 }
 
 func (s *LangStorage) AddLanguage(language string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	return s.db.Create(&models.Language{Name: language}).Error
+}
 
-	data, err := os.ReadFile(s.filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read storage file '%s' before adding language: %s", s.filePath, err.Error())
+func (s *LangStorage) GetLanguages() ([]string, error) {
+	var languages []models.Language
+	if err := s.db.Find(&languages).Error; err != nil {
+		return nil, err
 	}
 
-	var languages []string
-	if len(data) > 0 {
-		err = json.Unmarshal(data, &languages)
-		if err != nil {
-			return fmt.Errorf("failed to parse JSON from storage file '%s' before adding language: %s", s.filePath, err.Error())
-		}
+	names := make([]string, len(languages))
+	for i, lang := range languages {
+		names[i] = lang.Name
 	}
-	languages = append(languages, language)
-
-	updatedData, err := json.MarshalIndent(languages, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal updated language list to JSON: %s", err.Error())
-	}
-
-	err = os.WriteFile(s.filePath, updatedData, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write updated language list to storage file '%s': %s", s.filePath, err.Error())
-	}
-
-	return nil
+	return names, nil
 }

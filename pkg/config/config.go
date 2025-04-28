@@ -37,7 +37,7 @@ func NewConfig() *Config {
 		PythonService:       getEnv("PYTHON_SERVICE", "217.76.51.104:7771"),
 		JavaService:         getEnv("PYTHON_SERVICE", "217.76.51.104:7773"),
 		GatewayPort:         getEnv("GATEWAY_PORT", "7772"),
-		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "../languages.json"),
+		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "languages.db"),
 		LogsFilePath:        getEnv("LOGS_FILE_PATH", "app.log"),
 		RedisCfg: &RedisConfig{
 			Host:     getEnv("REDIS_HOST", "redis"),
