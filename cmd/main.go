@@ -85,6 +85,7 @@ func newHTTPServer(cfg *config.Config) *http.Server {
 }
 
 func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *handler.LangHandler, middleware *middleware.MidWare) {
+	router.Use(middleware.CORS())
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r := router.Group("/api/v1")
 	r.Use(middleware.RateLimit())
