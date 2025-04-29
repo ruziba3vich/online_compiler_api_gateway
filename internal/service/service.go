@@ -227,7 +227,7 @@ func NewService(
 	executors := map[string]CodeExecutor{
 		"python": &Compiler{client: pythonClient},
 		"java":   &Compiler{client: javaClient},
-		"c++":    &Compiler{client: cppClient},
+		"cpp":    &Compiler{client: cppClient},
 	}
 
 	return &Service{
