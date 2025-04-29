@@ -232,7 +232,7 @@ func NewService(
 
 	return &Service{
 		mx:        mx,
-		logger:    &logger,
+		logger:    logger,
 		dangerous: dangerous,
 		executors: executors,
 	}
