@@ -42,9 +42,10 @@ type Service struct {
 // NewService initializes the service with a registry of language executors.
 func NewService(
 	mx *sync.Mutex,
-	logger lgg.Logger,
+	logger *lgg.Logger,
 	pythonClient repos.Python,
-	javaClient repos.Java) *Service {
+	javaClient repos.Java,
+	cppClient repos.Cpp) *Service {
 	dangerous := map[string][]string{
 		"python": {
 			"import os", "import subprocess", "__import__",
@@ -226,6 +227,7 @@ func NewService(
 	executors := map[string]CodeExecutor{
 		"python": &Compiler{client: pythonClient},
 		"java":   &Compiler{client: javaClient},
+		"c++":    &Compiler{client: cppClient},
 	}
 
 	return &Service{
