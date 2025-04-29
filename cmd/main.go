@@ -88,8 +88,17 @@ func newCppGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Cpp, error)
 	return compiler_service.NewCodeExecutorClient(conn), nil
 }
 
-func newService(logger *lgg.Logger, pythonClient repos.Python, javaClient repos.Java) *service.Service {
-	return service.NewService(&sync.Mutex{}, *logger, pythonClient, javaClient)
+func newService(
+	logger *lgg.Logger,
+	pythonClient repos.Python,
+	javaClient repos.Java,
+	cppClient repos.Cpp) *service.Service {
+	return service.NewService(
+		&sync.Mutex{},
+		logger,
+		pythonClient,
+		javaClient,
+		cppClient)
 }
 
 func newGinRouter() *gin.Engine {
