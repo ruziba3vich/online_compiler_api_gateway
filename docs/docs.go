@@ -15,83 +15,28 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/create": {
-            "post": {
-                "description": "Adds a new programming language to the system",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "languages"
-                ],
-                "summary": "Create a new programming language",
-                "parameters": [
-                    {
-                        "description": "Language name",
-                        "name": "language",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Language created successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict, language already exists",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/languages": {
             "get": {
-                "description": "Gets a list of all programming languages in the system",
+                "description": "Returns language-script pairs",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "languages"
                 ],
-                "summary": "Retrieve all programming languages",
+                "summary": "Retrieve base Hello World scripts for all supported languages",
                 "responses": {
                     "200": {
-                        "description": "List of languages",
+                        "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
+                            "type": "object",
+                            "additionalProperties": {
                                 "type": "string"
                             }
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -99,19 +44,6 @@ const docTemplate = `{
                             }
                         }
                     }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
                 }
             }
         }
