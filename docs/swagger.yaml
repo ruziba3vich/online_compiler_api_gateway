@@ -1,74 +1,30 @@
 basePath: /api/v1
-definitions:
-  github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language:
-    properties:
-      name:
-        type: string
-      password:
-        type: string
-    type: object
-host: 217.76.51.104:7772
+host: compile.prodonik.uz
 info:
   contact: {}
   description: API for managing programming languages and compiling code
   title: Online Compiler API
   version: "1.0"
 paths:
-  /create:
-    post:
-      consumes:
-      - application/json
-      description: Adds a new programming language to the system
-      parameters:
-      - description: Language name
-        in: body
-        name: language
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_ruziba3vich_online_compiler_api_gateway_internal_dto.Language'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Language created successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "409":
-          description: Conflict, language already exists
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new programming language
-      tags:
-      - languages
   /languages:
     get:
-      description: Gets a list of all programming languages in the system
+      description: Returns language-script pairs
       produces:
       - application/json
       responses:
         "200":
-          description: List of languages
-          schema:
-            items:
-              type: string
-            type: array
-        "500":
-          description: Internal server error
+          description: OK
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Retrieve all programming languages
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieve base Hello World scripts for all supported languages
       tags:
       - languages
 swagger: "2.0"
