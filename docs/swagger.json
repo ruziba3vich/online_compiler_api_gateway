@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "217.76.51.104:7772",
+    "host": "compile.prodonik.uz",
     "basePath": "/api/v1",
     "paths": {
         "/languages": {

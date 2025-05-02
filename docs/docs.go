@@ -53,7 +53,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "217.76.51.104:7772",
+	Host:             "compile.prodonik.uz",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Online Compiler API",

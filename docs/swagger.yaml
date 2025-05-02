@@ -1,5 +1,5 @@
 basePath: /api/v1
-host: 217.76.51.104:7772
+host: compile.prodonik.uz
 info:
   contact: {}
   description: API for managing programming languages and compiling code

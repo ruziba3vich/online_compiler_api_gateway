@@ -1,7 +1,7 @@
 // @title Online Compiler API
 // @version 1.0
 // @description API for managing programming languages and compiling code
-// @host 217.76.51.104:7772
+// @host compile.prodonik.uz
 // @BasePath /api/v1
 package handler
 
