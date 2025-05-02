@@ -118,7 +118,6 @@ func registerRoutes(router *gin.Engine, handler *handler.Handler, langHandler *h
 	r.Use(middleware.RateLimit())
 	r.GET("/execute", handler.HandleWebSocket)
 	r.GET("/languages", langHandler.GetAllLanguages)
-	r.POST("/create", langHandler.CreateLanguage)
 }
 
 func startServer(lc fx.Lifecycle, server *http.Server, router *gin.Engine, logger *lgg.Logger, cfg *config.Config) {
