@@ -26,6 +26,12 @@ type WsMessage struct {
 	Input    string `json:"input,omitempty"`
 }
 
+// WsResponse represents the JSON response sent over WebSocket.
+type WsResponse struct {
+	Output string `json:"output"`
+	Status string `json:"status"`
+}
+
 // CodeExecutor defines the interface for language-specific gRPC clients.
 type CodeExecutor interface {
 	Execute(ctx context.Context) (compiler_service.CodeExecutor_ExecuteClient, error)
@@ -58,7 +64,6 @@ func NewService(
 			"new ProcessBuilder(",
 			"ProcessBuilder",
 			"Runtime.exec(",
-
 			"java.io.File",
 			"new File(",
 			".delete()",
@@ -74,7 +79,6 @@ func NewService(
 			"Files.delete(",
 			"Files.copy(",
 			"Files.move(",
-
 			"java.net.Socket",
 			"new Socket(",
 			"java.net.ServerSocket",
@@ -85,13 +89,11 @@ func NewService(
 			"java.net.DatagramSocket",
 			"java.nio.channels.SocketChannel",
 			"java.nio.channels.ServerSocketChannel",
-
 			"java.lang.reflect",
 			"Class.forName(",
 			".setAccessible(true)",
 			"Method.invoke(",
 			"Field.set(",
-
 			"System.exit(",
 			"System.load(",
 			"System.loadLibrary(",
@@ -117,7 +119,6 @@ func NewService(
 			"fork(",
 			"vfork(",
 			"spawn(",
-
 			"fopen(",
 			"freopen(",
 			"fdopen(",
@@ -129,7 +130,6 @@ func NewService(
 			"unlink(",
 			"mkdir(",
 			"rmdir(",
-
 			"std::fstream",
 			"std::ifstream",
 			"std::ofstream",
@@ -141,7 +141,6 @@ func NewService(
 			"std::filesystem::copy(",
 			"std::filesystem::copy_file(",
 			"std::filesystem::resize_file(",
-
 			"std::getenv(",
 			"std::setenv(",
 			"std::putenv(",
@@ -150,7 +149,6 @@ func NewService(
 			"std::exit(",
 			"std::quick_exit(",
 			"std::terminate(",
-
 			"socket(",
 			"bind(",
 			"listen(",
@@ -164,7 +162,6 @@ func NewService(
 			"gethostbyaddr(",
 			"getaddrinfo(",
 			"std::net::socket",
-
 			"malloc(",
 			"calloc(",
 			"realloc(",
@@ -174,12 +171,10 @@ func NewService(
 			"std::memmove(",
 			"std::memset(",
 			"std::raw_storage_iterator",
-
 			"dlopen(",
 			"dlsym(",
 			"dlclose(",
 			"dlerror(",
-
 			"std::thread",
 			"std::async(",
 			"std::mutex",
@@ -188,7 +183,6 @@ func NewService(
 			"pthread_create(",
 			"pthread_join(",
 			"pthread_detach(",
-
 			"asm",
 			"__asm__",
 			"inline asm",
@@ -197,7 +191,6 @@ func NewService(
 			"std::raise(",
 			"std::setjmp(",
 			"std::longjmp(",
-
 			"#include <cstdlib>",
 			"#include <cstdio>",
 			"#include <fstream>",
@@ -212,7 +205,6 @@ func NewService(
 			"#include <unistd.h>",
 			"#include <sys/stat.h>",
 			"#include <sys/types.h>",
-
 			"operator new",
 			"operator delete",
 			"std::unique_ptr",
@@ -238,7 +230,7 @@ func NewService(
 	}
 }
 
-// PythonExecutor wraps the Python gRPC client to implement CodeExecutor.
+// Compiler wraps the gRPC client to implement CodeExecutor.
 type Compiler struct {
 	client compiler_service.CodeExecutorClient
 }
@@ -266,7 +258,10 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			defer func() {
 				s.logger.Info("gRPC stream reader stopped", map[string]any{"session_id": sessionID})
 				cleanupStream()
-				s.publishMessage(conn, websocket.TextMessage, []byte("Status: STREAM_CLOSED"))
+				s.publishMessage(conn, WsResponse{
+					Output: "Execution stream closed",
+					Status: "STREAM_CLOSED",
+				})
 			}()
 
 			for {
@@ -274,45 +269,62 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 				if err != nil {
 					if err == io.EOF {
 						s.logger.Info("gRPC stream closed cleanly by server (EOF)", map[string]any{"session_id": sessionID})
-						s.publishMessage(conn, websocket.TextMessage, []byte("INFO: Execution stream closed by server."))
+						s.publishMessage(conn, WsResponse{
+							Output: "Execution stream closed by server",
+							Status: "INFO",
+						})
 					} else if status.Code(err) == codes.Canceled {
 						s.logger.Warn("gRPC stream cancelled", map[string]any{"session_id": sessionID})
+						s.publishMessage(conn, WsResponse{
+							Output: "Stream cancelled",
+							Status: "ERROR",
+						})
 					} else {
 						s.logger.Warn("Error receiving from gRPC stream", map[string]any{"session_id": sessionID, "error": err})
-						s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: gRPC stream error: %v", err)))
+						s.publishMessage(conn, WsResponse{
+							Output: fmt.Sprintf("gRPC stream error: %v", err),
+							Status: "ERROR",
+						})
 					}
 					return
 				}
 
-				var msgToSend []byte
-				msgType := websocket.TextMessage
+				var wsResp WsResponse
 
 				switch payload := resp.Payload.(type) {
 				case *compiler_service.ExecuteResponse_Output:
-					msgToSend = []byte(payload.Output.OutputText)
+					wsResp = WsResponse{
+						Output: payload.Output.OutputText,
+						Status: "SUCCESS",
+					}
 					s.logger.Info("Received Output", map[string]any{"session_id": sessionID, "output": payload.Output.OutputText})
 					if strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), ":") || strings.HasSuffix(strings.TrimSpace(payload.Output.OutputText), "?") {
-						s.publishMessage(conn, websocket.TextMessage, []byte("Status: WAITING_FOR_INPUT"))
-						s.logger.Info("Detected input prompt, sent WAITING_FOR_INPUT", map[string]any{"session_id": sessionID})
+						wsResp.Status = "WAITING_FOR_INPUT"
+						s.logger.Info("Detected input prompt, set WAITING_FOR_INPUT", map[string]any{"session_id": sessionID})
 					}
 				case *compiler_service.ExecuteResponse_Error:
-					if !strings.Contains(payload.Error.ErrorText, "--- Cleaned up") {
-						msgToSend = []byte("Error: " + payload.Error.ErrorText)
+					if strings.Contains(payload.Error.ErrorText, "--- Cleaned up") {
+						continue // Skip cleanup messages
+					}
+					wsResp = WsResponse{
+						Output: payload.Error.ErrorText,
+						Status: "ERROR",
 					}
 					s.logger.Error("Received Error", map[string]any{"session_id": sessionID, "error": payload.Error.ErrorText})
 				case *compiler_service.ExecuteResponse_Status:
-					msgToSend = []byte("Status: " + payload.Status.State)
+					wsResp = WsResponse{
+						Output: payload.Status.State,
+						Status: payload.Status.State,
+					}
 					s.logger.Info("Received Status", map[string]any{"session_id": sessionID, "status": payload.Status.State})
 				default:
 					s.logger.Warn("Received unknown payload type from gRPC", map[string]any{"session_id": sessionID})
 					continue
 				}
 
-				if len(msgToSend) > 0 {
-					if err := s.publishMessage(conn, msgType, msgToSend); err != nil {
-						s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
-						return
-					}
+				if err := s.publishMessage(conn, wsResp); err != nil {
+					s.logger.Error("Error writing to WebSocket", map[string]any{"session_id": sessionID, "error": err})
+					return
 				}
 			}
 		}(currentStream, currentCancel, sessionID)
@@ -323,8 +335,16 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				s.logger.Error("Error reading from WebSocket", map[string]any{"session_id": sessionID, "error": err})
+				s.publishMessage(conn, WsResponse{
+					Output: fmt.Sprintf("WebSocket read error: %v", err),
+					Status: "ERROR",
+				})
 			} else {
 				s.logger.Warn("WebSocket closed", map[string]any{"session_id": sessionID, "error": err})
+				s.publishMessage(conn, WsResponse{
+					Output: "WebSocket connection closed",
+					Status: "CLOSED",
+				})
 			}
 			cleanupStream()
 			return err
@@ -332,13 +352,20 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 
 		if msgType != websocket.TextMessage {
 			s.logger.Warn("Ignoring non-text message from WebSocket", map[string]any{"session_id": sessionID})
+			s.publishMessage(conn, WsResponse{
+				Output: "Non-text message received",
+				Status: "ERROR",
+			})
 			continue
 		}
 
 		var wsMsg WsMessage
 		if err := json.Unmarshal(payload, &wsMsg); err != nil {
 			s.logger.Warn("Invalid JSON message", map[string]any{"session_id": sessionID, "error": err})
-			s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Invalid JSON: %v", err)))
+			s.publishMessage(conn, WsResponse{
+				Output: fmt.Sprintf("Invalid JSON: %v", err),
+				Status: "ERROR",
+			})
 			continue
 		}
 		s.logger.Debug("Received WebSocket JSON message", map[string]any{"session_id": sessionID, "message": wsMsg})
@@ -349,7 +376,10 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			executor, ok := s.executors[strings.ToLower(wsMsg.Language)]
 			if !ok {
 				s.logger.Warn("Unsupported language", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
-				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Language '%s' is not supported", wsMsg.Language)))
+				s.publishMessage(conn, WsResponse{
+					Output: fmt.Sprintf("Language '%s' is not supported", wsMsg.Language),
+					Status: "ERROR",
+				})
 				continue
 			}
 
@@ -360,7 +390,10 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			for _, keyword := range dangerousKeywords {
 				if strings.Contains(wsMsg.Code, keyword) {
 					s.logger.Warn("Dangerous code detected", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
-					s.publishMessage(conn, websocket.TextMessage, []byte("Error: dangerous script detected"))
+					s.publishMessage(conn, WsResponse{
+						Output: "Dangerous script detected",
+						Status: "ERROR",
+					})
 					return errors.New("unsafe code detected")
 				}
 			}
@@ -375,7 +408,10 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			currentStream, err = executor.Execute(ctx)
 			if err != nil {
 				s.logger.Error("Failed to start gRPC stream", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "error": err})
-				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to %s execution service: %v", wsMsg.Language, err)))
+				s.publishMessage(conn, WsResponse{
+					Output: fmt.Sprintf("Failed to connect to %s execution service: %v", wsMsg.Language, err),
+					Status: "ERROR",
+				})
 				return err
 			}
 			s.logger.Info("Started new gRPC stream", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
@@ -393,7 +429,10 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			}
 			if err := currentStream.Send(req); err != nil {
 				s.logger.Error("Failed to send code request to gRPC", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "error": err})
-				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to send code: %v", err)))
+				s.publishMessage(conn, WsResponse{
+					Output: fmt.Sprintf("Failed to send code: %v", err),
+					Status: "ERROR",
+				})
 				cleanupStream()
 				return err
 			}
@@ -410,21 +449,35 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 			}
 			if err := currentStream.Send(req); err != nil {
 				s.logger.Error("Failed to send input request to gRPC", map[string]any{"session_id": sessionID, "error": err})
-				s.publishMessage(conn, websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to send input: %v", err)))
+				s.publishMessage(conn, WsResponse{
+					Output: fmt.Sprintf("Failed to send input: %v", err),
+					Status: "ERROR",
+				})
 				cleanupStream()
 				return err
 			}
 			s.logger.Info("Sent input to gRPC", map[string]any{"session_id": sessionID})
 		} else {
 			s.logger.Warn("Invalid or unexpected JSON message", map[string]any{"session_id": sessionID, "message": wsMsg})
-			s.publishMessage(conn, websocket.TextMessage, []byte("Error: Invalid message. Send JSON with 'language' and 'code' or 'input' for active session."))
+			s.publishMessage(conn, WsResponse{
+				Output: "Invalid message. Send JSON with 'language' and 'code' or 'input' for active session.",
+				Status: "ERROR",
+			})
 		}
 	}
 }
 
-func (s *Service) publishMessage(conn *websocket.Conn, messageType int, data []byte) error {
+// publishMessage sends a JSON response over the WebSocket connection.
+func (s *Service) publishMessage(conn *websocket.Conn, resp WsResponse) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		s.logger.Error("Failed to marshal WebSocket response", map[string]any{"error": err})
+		return err
+	}
+
 	conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	return conn.WriteMessage(messageType, data)
+	return conn.WriteMessage(websocket.TextMessage, data)
 }
