@@ -469,6 +469,9 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 
 // publishMessage sends a JSON response over the WebSocket connection.
 func (s *Service) publishMessage(conn *websocket.Conn, resp WsResponse) error {
+	if resp.Output == "WAITING_FOR_INPUT" {
+		return nil
+	}
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
