@@ -15,7 +15,6 @@ import (
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/middleware"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/repos"
 	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
-	"github.com/ruziba3vich/online_compiler_api_gateway/internal/storage"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/config"
 	"github.com/ruziba3vich/online_compiler_api_gateway/pkg/lgg"
 	logger "github.com/ruziba3vich/prodonik_lgger"
@@ -38,8 +37,6 @@ func main() {
 			newMiddleware,
 			NewLogger,
 			NewDB,
-			storage.NewLangStorage,
-			service.NewLangService,
 			handler.NewLangHandler,
 			newPythonGRPCClient,
 			newJavaGRPCClient,
