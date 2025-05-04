@@ -373,6 +373,7 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 		if wsMsg.Language != "" && wsMsg.Code != "" {
 			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "code_length": len(wsMsg.Code)})
 
+			cleanupStream()
 			executor, ok := s.executors[strings.ToLower(wsMsg.Language)]
 			if !ok {
 				s.logger.Warn("Unsupported language", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
@@ -469,18 +470,12 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 
 // publishMessage sends a JSON response over the WebSocket connection.
 func (s *Service) publishMessage(conn *websocket.Conn, resp WsResponse) error {
-	if resp.Output == "WAITING_FOR_INPUT" {
+	if resp.Output == "WAITING_FOR_INPUT" || resp.Output == "EXECUTION_COMPLETE" {
 		return nil
 	}
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	data, err := json.Marshal(resp)
-	if err != nil {
-		s.logger.Error("Failed to marshal WebSocket response", map[string]any{"error": err})
-		return err
-	}
-
 	conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	return conn.WriteMessage(websocket.TextMessage, data)
+	return conn.WriteJSON(resp)
 }
