@@ -398,7 +398,7 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 				}
 			}
 
-			cleanupStream()
+			// cleanupStream()
 
 			sessionID = uuid.NewString()
 			s.logger.Info("Generated new session ID for code submission", map[string]any{"session_id": sessionID})
