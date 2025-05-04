@@ -9,20 +9,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ruziba3vich/online_compiler_api_gateway/internal/service"
 	logger "github.com/ruziba3vich/prodonik_lgger"
 )
 
 type LangHandler struct {
-	langService *service.LangService
-	logger      *logger.Logger
 }
 
-func NewLangHandler(langService *service.LangService, logger *logger.Logger) *LangHandler {
-	return &LangHandler{
-		langService: langService,
-		logger:      logger,
-	}
+func NewLangHandler(logger *logger.Logger) *LangHandler {
+	return &LangHandler{}
 }
 
 // GetAllLanguages godoc
