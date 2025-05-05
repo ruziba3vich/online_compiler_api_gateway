@@ -254,7 +254,7 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 	}
 
 	startStreamReader := func() {
-		go func(stream compiler_service.CodeExecutor_ExecuteClient, cancel context.CancelFunc, sessionID string) {
+		go func(stream compiler_service.CodeExecutor_ExecuteClient, sessionID string) {
 			defer func() {
 				s.logger.Info("gRPC stream reader stopped", map[string]any{"session_id": sessionID})
 				cleanupStream()
@@ -327,7 +327,7 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 					return
 				}
 			}
-		}(currentStream, currentCancel, sessionID)
+		}(currentStream, sessionID)
 	}
 
 	for {
@@ -373,7 +373,6 @@ func (s *Service) ExecuteWithWs(ctx context.Context, conn *websocket.Conn, sessi
 		if wsMsg.Language != "" && wsMsg.Code != "" {
 			s.logger.Info("Received new code submission", map[string]any{"session_id": sessionID, "language": wsMsg.Language, "code_length": len(wsMsg.Code)})
 
-			cleanupStream()
 			executor, ok := s.executors[strings.ToLower(wsMsg.Language)]
 			if !ok {
 				s.logger.Warn("Unsupported language", map[string]any{"session_id": sessionID, "language": wsMsg.Language})
