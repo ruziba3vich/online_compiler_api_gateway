@@ -18,6 +18,6 @@ RUN mkdir -p /app/data /app/logs
 
 COPY --from=builder /app/main /app/main
 
-EXPOSE 7772
+EXPOSE 700
 
 ENTRYPOINT ["/app/main"]
