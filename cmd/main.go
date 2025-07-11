@@ -41,6 +41,7 @@ func main() {
 			newPythonGRPCClient,
 			newJavaGRPCClient,
 			newCppGRPCClient,
+			newJsGRPCClient,
 			newService,
 			handler.NewHandler,
 			newGinRouter,
@@ -85,17 +86,29 @@ func newCppGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Cpp, error)
 	return compiler_service.NewCodeExecutorClient(conn), nil
 }
 
+func newJsGRPCClient(cfg *config.Config, logger *lgg.Logger) (repos.Js, error) {
+	conn, err := grpc.NewClient(cfg.JsService, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error("Failed to connect to Js Executor Service", map[string]any{"error": err})
+		return nil, err
+	}
+	logger.Info("Connected to gRPC service", map[string]any{"address": cfg.JsService})
+	return compiler_service.NewCodeExecutorClient(conn), nil
+}
+
 func newService(
 	logger *lgg.Logger,
 	pythonClient repos.Python,
 	javaClient repos.Java,
-	cppClient repos.Cpp) *service.Service {
+	cppClient repos.Cpp,
+	jsClient repos.Js) *service.Service {
 	return service.NewService(
 		&sync.Mutex{},
 		logger,
 		pythonClient,
 		javaClient,
-		cppClient)
+		cppClient,
+		jsClient)
 }
 
 func newGinRouter() *gin.Engine {
