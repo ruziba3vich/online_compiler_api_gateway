@@ -51,7 +51,8 @@ func NewService(
 	logger *lgg.Logger,
 	pythonClient repos.Python,
 	javaClient repos.Java,
-	cppClient repos.Cpp) *Service {
+	cppClient repos.Cpp,
+	jsClient repos.Js) *Service {
 	dangerous := map[string][]string{
 		"python": {
 			"import os", "import subprocess", "__import__",
@@ -214,12 +215,47 @@ func NewService(
 			"std::static_pointer_cast(",
 			"std::const_pointer_cast(",
 		},
+		"javascript": {
+			"require(",
+			"import(",
+			"child_process",
+			"fs",
+			"os",
+			"process",
+			"exec(",
+			"execSync(",
+			"spawn(",
+			"spawnSync(",
+			"fork(",
+			"Function(",
+			"eval(",
+			"global",
+			"globalThis",
+			"constructor(",
+			"while(true)",
+			"for(;;)",
+			"setInterval(",
+			"setTimeout(",
+			"__proto__",
+			"Reflect",
+			"Proxy",
+			"Buffer",
+			"process.env",
+			"process.exit",
+			"rm -rf",
+			"`rm",
+			"shell:",
+			"$(",
+			"window",
+			"document",
+		},
 	}
 
 	executors := map[string]CodeExecutor{
-		"python": &Compiler{client: pythonClient},
-		"java":   &Compiler{client: javaClient},
-		"cpp":    &Compiler{client: cppClient},
+		"python":     &Compiler{client: pythonClient},
+		"java":       &Compiler{client: javaClient},
+		"cpp":        &Compiler{client: cppClient},
+		"javascript": &Compiler{client: jsClient},
 	}
 
 	return &Service{

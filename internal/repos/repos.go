@@ -14,4 +14,8 @@ type (
 	Cpp interface {
 		compiler_service.CodeExecutorClient
 	}
+
+	Js interface {
+		compiler_service.CodeExecutorClient
+	}
 )
