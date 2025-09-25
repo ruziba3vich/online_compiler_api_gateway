@@ -36,10 +36,10 @@ type (
 func NewConfig() *Config {
 	_ = godotenv.Load()
 	return &Config{
-		PythonService:       getEnv("PYTHON_SERVICE", "84.247.167.76:702"),
-		JavaService:         getEnv("JAVA_SERVICE", "84.247.167.76:701"),
-		CppService:          getEnv("CPP_SERVICE", "84.247.167.76:703"),
-		JsService:           getEnv("JS_SERVICE", "84.247.167.76:704"),
+		PythonService:       getEnv("PYTHON_SERVICE", "89.117.58.248:702"),
+		JavaService:         getEnv("JAVA_SERVICE", "89.117.58.248:701"),
+		CppService:          getEnv("CPP_SERVICE", "89.117.58.248:703"),
+		JsService:           getEnv("JS_SERVICE", "89.117.58.248:704"),
 		GatewayPort:         getEnv("GATEWAY_PORT", "700"),
 		LangStorageFilePath: getEnv("LANG_STORAGE_FPATH", "data/languages.db"),
 		LogsFilePath:        getEnv("LOGS_FILE_PATH", "data/app.log"),
