@@ -68,4 +68,3 @@ To execute code, the client must send it in the following format:
 ```bash
 export PYTHON_SERVICE=host:7771
 export GATEWAY_PORT=7772
-
