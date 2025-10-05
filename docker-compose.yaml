@@ -26,7 +26,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6378:6379"
+      - "6370:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
